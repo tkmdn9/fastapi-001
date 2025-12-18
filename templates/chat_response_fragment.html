@@ -1,0 +1,15 @@
+<!-- User Message -->
+<div class="flex justify-end">
+    <div class="bg-blue-500 text-white rounded-lg px-4 py-2 max-w-[80%] prose">
+        {{ message | safe }}
+    </div>
+</div>
+
+<!-- Bot Message Placeholder with SSE -->
+<div class="flex justify-start" id="bot-response-container">
+    <div class="bg-gray-200 text-gray-800 rounded-lg px-4 py-2 max-w-[80%] prose" hx-ext="sse"
+        sse-connect="/chat_stream/{{ session_id }}?message={{ message }}" sse-swap="message" sse-close="close">
+        <!-- Content will be streamed here -->
+        <span class="animate-pulse">Thinking...</span>
+    </div>
+</div>

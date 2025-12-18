@@ -3,6 +3,7 @@ uvicorn
 jinja2
 python-multipart
 langchain
+langchain-community
 langchain-openai
 python-dotenv
 markdown
