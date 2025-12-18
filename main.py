@@ -65,87 +65,63 @@ async def get(request: Request):
 async def chat(request: Request, message: str = Form(...)):
     session_id = request.cookies.get("session_id")
     if not session_id:
-         # Fallback if cookie missing, though mostly handled by browser
          session_id = "default"
+    
+    # Generate a unique ID for this message bubble
+    message_id = secrets.token_hex(4)
 
-    # Return the user message AND a placeholder for the bot response
-    # The placeholder connects to the SSE stream
     return templates.TemplateResponse("chat_response_fragment.html", {
         "request": request,
         "message": message,
-        "session_id": session_id
+        "session_id": session_id,
+        "message_id": message_id
     })
 
-@app.get("/chat_stream/{session_id}")
-async def chat_stream(request: Request, session_id: str):
-    # Get the last user message from memory? 
-    # Actually, the standard pattern is:
-    # 1. POST /chat updates memory with user message.
-    # 2. GET /stream generates response based on memory.
-    
-    # However, in our POST /chat above, we didn't save to memory yet because 
-    # RunnableWithMessageHistory does it automatically when invoked.
-    # So we need to pass the user message to the stream endpoint or save it first.
-    
-    # Revised flow:
-    # We need to pass the message to this endpoint. Cookies/Session? 
-    # Or, simpler: The POST /chat saves to memory MANUALLY, then stream just asks AI to "reply".
-    
-    # Let's try passing the message via query param for this turn?
-    # No, that's ugly.
-    
-    # Better:
-    # The POST /chat sends the user message to the server.
-    # The server appends it to history.
-    # The response triggers the stream.
-    # The stream runs the chain with just the history (and a dummy input? or last message?).
-    
-    # Simpler HACK for this pattern:
-    # Pass the message as a query param to the SSE endpoint in the HTML fragment.
-    # <div hx-ext="sse" sse-connect="/chat_stream/session_id?message=USER_MSG" ...>
-    
-    return StreamingResponse(
-        stream_generator(session_id, request.query_params.get("message", "")),
-        media_type="text/event-stream"
-    )
-
-async def stream_generator(session_id: str, message: str):
+async def stream_generator(session_id: str, message: str, message_id: str):
     if not model or not message:
-        yield f"event: message\ndata: <div id='error'>Error</div>\n\n"
+        yield f"event: message\ndata: <div class='text-red-500'>Error: API Key missing</div>\n\n"
+        # Stop everything by replacing with static error via OOB
+        yield f"""event: message
+data: <div id="bot-response-{message_id}" hx-swap-oob="outerHTML" class="bg-gray-200 text-gray-800 rounded-lg px-4 py-2 max-w-[80%] prose border border-red-500">Error: API Key missing</div>
+"""
+        yield "event: close\ndata: \n\n"
         return
 
     full_response = ""
     
-    # Yield the beginning of the bubble
-    # We are replacing the inner content of the placeholder
-    
     try:
-        # Stream the response
         async for chunk in runnable_with_history.astream(
             {"question": message},
             config={"configurable": {"session_id": session_id}}
         ):
             full_response += chunk
-            # Render Markdown on the fly? Ideally yes, but tricky with partials.
-            # For now, let's just stream text and render full markdown at the end?
-            # Or use a client-side markdown renderer? 
-            # Plan said: "Implement StreamingResponse... Update Chat UI to handle streaming chunks"
-            # Let's just stream raw text for the "typing" effect, then swap with rendered markdown at the end.
+            safe_text = full_response.replace("<", "&lt;").replace(">", "&gt;").replace("\n", "<br>")
+            yield f"event: message\ndata: {safe_text}\n\n"
             
-            # Escape HTML to prevent injection during streaming
-            safe_chunk = chunk.replace("<", "&lt;").replace(">", "&gt;")
-            
-            # SSE Format: data: <content>\n\n
-            # We append to the message-content div
-            yield f"event: message\ndata: {safe_chunk}\n\n"
-            
-            # Artificial delay for effect if it's too fast? No.
-            
-        # Final Event: Swap with full rendered markdown
+        # Final Step: Replace the headers entirely using OOB to stop reconnection
         rendered_html = markdown.markdown(full_response, extensions=['fenced_code', 'codehilite'])
-        # We need to replace the whole content with the robust HTML
-        yield f"event: close\ndata: {rendered_html}\n\n"
+        safe_rendered_html = rendered_html.replace("\n", "")
+        
+        # OOB Swap to replace the streaming container with a static one
+        # This removes the 'sse-connect' attribute, preventing reconnection.
+        yield f"""event: message
+data: <div id="bot-response-{message_id}" hx-swap-oob="outerHTML" class="bg-gray-200 text-gray-800 rounded-lg px-4 py-2 max-w-[80%] prose">{safe_rendered_html}</div>
+"""
+        yield "event: close\ndata: \n\n"
         
     except Exception as e:
         yield f"event: message\ndata: Error: {str(e)}\n\n"
+        yield "event: close\ndata: \n\n"
 
+@app.get("/chat_stream/{session_id}")
+async def chat_stream(request: Request, session_id: str):
+    message = request.query_params.get("message", "")
+    message_id = request.query_params.get("message_id", "")
+    return StreamingResponse(
+        stream_generator(session_id, message, message_id),
+        media_type="text/event-stream"
+    )
+
+@app.post("/chat/user", response_class=HTMLResponse)
+async def chat_user(request: Request, message: str = Form(...)):
+     return templates.TemplateResponse("chat_message.html", {"request": request, "message": message, "is_user": True})

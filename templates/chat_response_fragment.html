@@ -6,10 +6,10 @@
 </div>
 
 <!-- Bot Message Placeholder with SSE -->
-<div class="flex justify-start" id="bot-response-container">
-    <div class="bg-gray-200 text-gray-800 rounded-lg px-4 py-2 max-w-[80%] prose" hx-ext="sse"
-        sse-connect="/chat_stream/{{ session_id }}?message={{ message }}" sse-swap="message" sse-close="close">
-        <!-- Content will be streamed here -->
+<div class="flex justify-start">
+    <div id="bot-response-{{ message_id }}" class="bg-gray-200 text-gray-800 rounded-lg px-4 py-2 max-w-[80%] prose"
+        hx-ext="sse" sse-connect="/chat_stream/{{ session_id }}?message={{ message }}&message_id={{ message_id }}"
+        sse-swap="message" sse-close="close">
         <span class="animate-pulse">Thinking...</span>
     </div>
 </div>
