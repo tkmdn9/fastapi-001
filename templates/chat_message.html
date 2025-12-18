@@ -1,6 +1,6 @@
 <div class="flex {{ 'justify-end' if is_user else 'justify-start' }}">
     <div
-        class="{{ 'bg-blue-500 text-white' if is_user else 'bg-gray-200 text-gray-800' }} rounded-lg px-4 py-2 max-w-[80%]">
-        {{ message }}
+        class="{{ 'bg-blue-500 text-white' if is_user else 'bg-gray-200 text-gray-800' }} rounded-lg px-4 py-2 max-w-[80%] prose">
+        {{ message | safe }}
     </div>
 </div>
