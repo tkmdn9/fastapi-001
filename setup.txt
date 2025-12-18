@@ -1,0 +1,79 @@
+I'll help you set up the virtual environment from scratch. Here's a clear, step-by-step guide:
+
+## 1. 仮想環境の作成
+
+```bash
+# プロジェクトのルートディレクトリで実行
+python3 -m venv venv
+```
+
+## 2. 仮想環境の有効化
+
+```bash
+# macOS/Linux
+source venv/bin/activate
+
+# Windows
+# venv\Scripts\activate
+```
+
+## 3. pipのアップグレード
+
+```bash
+python -m pip install --upgrade pip
+```
+
+## 4. 必要なパッケージのインストール
+
+```bash
+pip install fastapi uvicorn sqlalchemy python-multipart jinja2
+```
+
+## 5. 依存関係の保存
+
+```bash
+pip freeze > requirements.txt
+```
+
+## 6. データベースの初期化
+
+```bash
+python -c "from app.database import Base, engine; Base.metadata.create_all(bind=engine)"
+```
+
+## 7. アプリケーションの起動
+
+```bash
+uvicorn app.main:app --reload
+uvicorn main:app --reload
+```
+
+## 8. ブラウザで確認
+
+```
+http://127.0.0.1:8000
+```
+
+## トラブルシューティング
+
+- **仮想環境の削除と再作成**:
+  ```bash
+  # 仮想環境を削除
+  rm -rf venv
+  
+  # 上記の手順1から再度実行
+  ```
+
+- **パッケージの再インストール**:
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+- **ポートが使用中の場合は終了**:
+  ```bash
+  # ポート8000を使用しているプロセスを終了
+  lsof -i :8000
+  kill -9 <プロセスID>
+  ```
+
+この手順で、環境構築からアプリケーションの起動までをスムーズに行うことができます。何か問題が発生した場合は、エラーメッセージを教えてください。

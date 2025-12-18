@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastAPI + htmx Chat</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 h-screen flex flex-col items-center justify-center">
+
+    <div class="w-full max-w-md bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-[600px]">
+        <div class="bg-blue-600 p-4 text-white font-bold text-center">
+            Chat App
+        </div>
+
+        <div id="chat-history" class="flex-1 p-4 overflow-y-auto space-y-4 flex flex-col">
+            <!-- Chat history will appear here -->
+        </div>
+
+        <form hx-post="/chat" hx-target="#chat-history" hx-swap="beforeend" class="p-4 border-t border-gray-200 flex space-x-2"
+              ws-send>
+            <input type="text" name="message" class="flex-1 border border-gray-300 rounded-lg p-2 focus:outline-none focus:border-blue-500" placeholder="Type a message..." required>
+            <button type="submit" class="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition">Send</button>
+        </form>
+        
+        <!-- Script to handle immediate user message display and then trigger bot response -->
+        <script>
+            document.body.addEventListener('htmx:configRequest', function(evt) {
+                // Ideally, we'd append the user message immediately via JS or htmx
+                // For simplicity in this minimal version, we are relying on the server response to append the bot message.
+                // However, a chat app usually shows the user message immediately.
+                // Let's adjust the implementation to handle this better in a "minimal" way.
+                // Or, strictly following "minimal", we might just accept the server returning both or just the response.
+                // Let's stick to the server returning the response for now as per the simplest htmx pattern.
+            });
+            
+             document.addEventListener('htmx:afterRequest', function(evt) {
+                 const input = document.querySelector('input[name="message"]');
+                 if(evt.detail.successful) input.value = '';
+             });
+        </script>
+    </div>
+
+</body>
+</html>
